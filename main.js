@@ -1,67 +1,100 @@
-// Variables
+// Select all DOM elements
+const clearLocalStorageBtn = document.querySelector('.all-clear_btn');
 const dateElement = document.querySelector('.date-element');
-const allClearBtn = document.querySelector('.all-clear_btn');
-const itemList = document.querySelector('.item-list');
-const addTodoBtn = document.querySelector('.add-todo_btn');
-const inputText = document.querySelector('.input-text');
-let list = [], id = 0;
+const tasksList = document.querySelector('.tasks-list'); 
+const inputTask = document.querySelector('.input-task');
+const addTaskBtn = document.querySelector('.add-task_btn');
 
-const check = "fa-check-circle";
-const uncheck = "fa-circle";
-const line_through = "line-through";
+// Classes elements
+const finished = 'fa-check-circle';
+const unfinished = 'fa-circle';
+const line_through = 'line-through';
 
-// Date
+// Variables
+let list, id;
+
+// Add date element 
 const currentDate = new Date();
-const options = { weekday: "long", month: "long", day: "numeric" };
+const options = { weekday: 'long', month: 'long', day: 'numeric'};
 dateElement.innerHTML = currentDate.toLocaleDateString('en-US', options);
 
-const addToDo = (todo, id, done, trash) => {
+// Add tasks
+const addTask = (task, complete, trash, id) => {
     if (trash) { return; };
-    let DONE = done ? check : uncheck;
-    let LINE = done ? line_through : '';
-    let position = "beforeend";
-    let element = `<li class="item">
-                        <i class="far ${DONE} btn" ${id} goal="complete"></i>
-                        <p class="todo ${LINE}">${todo}</p>
-                        <i class="fas fa-trash-alt btn" goal="delete" ${id}></i>
-                   </li>`;
-    itemList.insertAdjacentHTML(position, element);
-};
+    let COMPLETE = complete ? finished : unfinished;
+    let LINE = complete ? line_through : '';
+    let position = 'beforeend';
+    let item = `<li class="task">
+                    <i class="far ${COMPLETE} btn" status="complete" id=${id}></i>
+                    <p class="text ${LINE}">${task}</p>
+                    <i class="fas fa-trash-alt btn" status="delete" id=${id}></i>
+                </li>`;
+    tasksList.insertAdjacentHTML(position, item);
+};  
 
-document.addEventListener('keyup', e => {
-    if (e.keyCode === 13) {
-        let todo = inputText.value;
-        if (todo) {
-            addToDo(todo, id, false, false);
+const addTaskToList = () => {
+    let task = inputTask.value;
+        if (task) {
+            addTask(task, false, false, id);
             list.push({
-                name: todo,
-                id: id,
-                done: false,
-                trash: false
+                name: task,
+                complete: false,
+                trash: false,
+                id: id
             });
             id++;
-        };
-        inputText.value = '';
-    };
-});
-
-const completeToDo = element => {
-    element.classList.toggle(check);
-    element.classList.toggle(uncheck);
-    element.parentNode.querySelector('.todo').classList.toggle(line_through);
+            localStorage.setItem('TASKS', JSON.stringify(list));
+        }
+    inputTask.value = '';
 };
 
-const deleteToDo = element => {
-     element.parentNode.parentNode.removeChild(element.parentNode);
+addTaskBtn.addEventListener('click', addTaskToList);
+document.addEventListener('keyup', e => {
+    if (e.keyCode === 13) { addTaskToList(); };
+}); 
+
+// Complete of delete tasks
+const completeTask = element => {
+    element.classList.toggle(finished);
+    element.classList.toggle(unfinished);
+    element.parentNode.querySelector('.text').classList.toggle(line_through);
+    list[element.id].complete = list[element.id].complete ? false : true;
 };
 
-itemList.addEventListener('click', e => {
+const deleteTask = element => {
+    element.parentNode.parentNode.removeChild(element.parentNode);
+    list[element.id].trash = true;
+}
+
+tasksList.addEventListener('click', e => {
     let element = e.target;
-    let goalElement = element.attributes.goal.value;
-    if (goalElement === "complete") {
-        completeToDo(element);
-    } else if (goalElement === "delete") {
-        deleteToDo(element);
+    let elementStatus = element.attributes.status.value;
+    if (elementStatus === 'complete') {
+        completeTask(element);
+    } else if(elementStatus === 'delete') {
+        deleteTask(element);
     }
+    localStorage.setItem('TASKS', JSON.stringify(list));
 });
 
+// Load items from localStorage
+const date = localStorage.getItem('TASKS');
+
+const loadTasksList = array => {
+    array.forEach(elt => addTask(elt.name, elt.complete, elt.trash, elt.id));
+};
+
+if (date) {
+    list = JSON.parse(date);
+    id = list.length;
+    loadTasksList(list);
+} else {
+    list = [];
+    id = 0;
+};
+
+// Delete all items from localStorage
+clearLocalStorageBtn.addEventListener('click', () => {
+    localStorage.clear();
+    window.location.reload();
+});
